@@ -335,7 +335,7 @@ objects:
               {
                   "name": "Prometheus",
                   "type": "prometheus",
-                  "url": "http://prometheus-operated.deployment-validation-operator.svc.cluster.local:9090",
+                  "url": "http://prometheus-operated.additional-dvo-testing.svc.cluster.local:9090",
                   "access": "proxy"
               }
           ]
