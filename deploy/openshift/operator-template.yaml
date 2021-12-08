@@ -1,0 +1,96 @@
+---
+apiVersion: v1
+kind: Template
+metadata:
+  name: deployment-validation-operator
+objects:
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    labels:
+      app: deployment-validation-operator
+    name: deployment-validation-operator
+  spec:
+    replicas: 3
+    selector:
+      matchLabels:
+        app: deployment-validation-operator
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          name: deployment-validation-operator
+          app: deployment-validation-operator
+      spec:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                    - deployment-validation-operator
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+        containers:
+        - image: quay.io/deployment-validation-operator/dv-operator:0.1.1
+          imagePullPolicy: Always
+          name: deployment-validation-operator
+          args:
+          - --config /config/deployment-validation-operator-config.yaml
+          resources:
+            requests:
+              memory: ${DVO_MEMORY_REQUEST}
+              cpu: ${DVO_CPU_REQUEST}
+            limits:
+              memory: ${DVO_MEMORY_LIMIT}
+              cpu: ${DVO_CPU_LIMIT}
+          env:
+          - name: WATCH_NAMESPACE
+            value: ""
+          - name: OPERATOR_NAME
+            value: "deployment-validation-operator"
+          - name: NAMESPACE_IGNORE_PATTERN
+            value: "openshift.*|kube-.+"
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          volumeMounts:
+          - name: dvo-config
+            mountPath: /config
+          securityContext:
+            readOnlyRootFilesystem: true
+        volumes:
+        - name: dvo-config
+          configMap:
+            optional: true
+            name: deployment-validation-operator-config
+        restartPolicy: Always
+        serviceAccountName: deployment-validation-operator
+        terminationGracePeriodSeconds: 30
+parameters:
+- name: DVO_MEMORY_REQUEST
+  value: "256Mi"
+  displayName: Memory request for DVO pods
+  description: Memory request for DVO pods
+- name: DVO_CPU_REQUEST
+  value: "100n"
+  displayName: CPU request for DVO pods
+  description: CPU request for DVO pods
+- name: DVO_MEMORY_LIMIT
+  value: "4GB"
+  displayName: Memory limit for DVO pods
+  description: Memory limit for DVO pods
+- name: DVO_CPU_LIMIT
+  value: "1"
+  displayName: CPU limit for DVO pods
+  description: CPU limit for DVO pods  
+
+
